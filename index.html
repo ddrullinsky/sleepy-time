@@ -533,10 +533,16 @@ function loadLocal() {
   } catch { }
 }
 
+function normalizeDate(val) {
+  if (!val) return null;
+  // Google Sheets may return a full ISO timestamp — strip to date only
+  return String(val).slice(0, 10);
+}
+
 function applyData(d) {
   streak = Number(d.streak) || 0;
-  lastCompletedDate = d.lastCompletedDate || null;
-  const savedDate = d.currentDate || null;
+  lastCompletedDate = normalizeDate(d.lastCompletedDate);
+  const savedDate = normalizeDate(d.currentDate);
   if (savedDate === todayStr()) {
     dayType = d.dayType || 'no-bath';
     try { checked = typeof d.checked === 'string' ? JSON.parse(d.checked) : (d.checked || {}); } catch { checked = {}; }
