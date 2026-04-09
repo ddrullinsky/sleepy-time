@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bedtime">
+<title>Sleepy Time</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f0e2a;
+  --card: #1b1a3e;
+  --card-border: #2a2960;
+  --accent: #ff6b9d;
+  --gold: #ffd166;
+  --green: #06d6a0;
+  --blue: #118ab2;
+  --text: #f0eeff;
+  --dim: #9b97c4;
+  --purple: #7b68ee;
+}
+
+body {
+  font-family: 'Avenir Next', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  background: linear-gradient(180deg, #0f0e2a 0%, #1a1145 50%, #0d1b3e 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+}
+
+/* Stars background */
+.stars {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+.star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle var(--dur) ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  0% { opacity: 0.15; transform: scale(0.8); }
+  100% { opacity: 0.9; transform: scale(1.2); }
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 420px; margin: 0 auto;
+  padding: 24px 18px 48px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.moon {
+  font-size: 72px;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 209, 102, 0.3));
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+.header h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--gold), #ffab76, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 8px;
+}
+.header .subtitle {
+  font-size: 15px; color: var(--dim); margin-top: 2px;
+  font-weight: 500;
+}
+.header .date {
+  font-size: 13px; color: var(--dim); margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* Day type toggle */
+.day-toggle {
+  display: flex; gap: 10px; margin-bottom: 24px;
+}
+.day-btn {
+  flex: 1;
+  padding: 14px 8px;
+  border: 2px solid var(--card-border);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+.day-btn.active {
+  border-color: var(--purple);
+  background: linear-gradient(135deg, rgba(123, 104, 238, 0.15), var(--card));
+  box-shadow: 0 0 24px rgba(123, 104, 238, 0.2);
+}
+.day-btn .icon { font-size: 30px; display: block; margin-bottom: 4px; }
+
+/* Checklist */
+.checklist { display: flex; flex-direction: column; gap: 10px; }
+
+.task {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card);
+  border: 2px solid var(--card-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.task::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(6, 214, 160, 0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+.task.checked::before { opacity: 1; }
+.task.checked {
+  border-color: var(--green);
+  transform: scale(0.98);
+}
+.task.checked .task-icon { animation: pop 0.4s ease; }
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.checkbox {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--card-border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s;
+  font-size: 16px;
+  color: #fff;
+}
+.task.checked .checkbox {
+  border-color: var(--green);
+  background: var(--green);
+  box-shadow: 0 0 12px rgba(6, 214, 160, 0.4);
+}
+
+.task-icon {
+  font-size: 34px; flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+.task-label {
+  font-size: 17px; font-weight: 700; flex: 1;
+  letter-spacing: -0.2px;
+}
+.task.checked .task-label {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  color: var(--dim);
+  opacity: 0.7;
+}
+
+/* Sleep icon */
+.sleep-icon {
+  display: inline-flex;
+  align-items: flex-end;
+  position: relative;
+  line-height: 1;
+}
+.sleep-icon .sleeper {
+  font-size: 42px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.sleep-icon .zzz {
+  position: absolute;
+  top: -6px; right: -14px;
+  font-family: 'Avenir Next', -apple-system, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--gold);
+  font-size: 14px;
+  text-shadow: 0 0 8px rgba(255, 209, 102, 0.5);
+  animation: zzzFloat 2.5s ease-in-out infinite;
+}
+.sleep-icon .zzz span:nth-child(1) {
+  font-size: 11px;
+  position: relative;
+  top: 2px;
+  animation: zzzFloat 2.5s ease-in-out infinite 0.3s;
+}
+.sleep-icon .zzz span:nth-child(2) {
+  font-size: 9px;
+  position: relative;
+  top: 4px;
+  opacity: 0.6;
+  animation: zzzFloat 2.5s ease-in-out infinite 0.6s;
+}
+@keyframes zzzFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Step number */
+.step-num {
+  position: absolute;
+  top: 6px; right: 10px;
+  font-size: 11px;
+  color: var(--dim);
+  opacity: 0.5;
+  font-weight: 600;
+}
+
+/* Progress bar */
+.progress-section {
+  margin-top: 24px;
+  text-align: center;
+}
+.progress-label {
+  font-size: 14px; color: var(--dim); margin-bottom: 8px;
+  font-weight: 600;
+}
+.progress-bar {
+  height: 12px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #45e0a0, var(--gold));
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(6, 214, 160, 0.3);
+}
+
+/* Streak */
+.streak-section {
+  margin-top: 28px;
+  background: var(--card);
+  border-radius: 22px;
+  padding: 22px 20px;
+  text-align: center;
+  border: 2px solid var(--card-border);
+  position: relative;
+  overflow: hidden;
+}
+.streak-section::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255, 209, 102, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.streak-title {
+  font-size: 15px; color: var(--dim); margin-bottom: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.streak-stars {
+  display: flex; justify-content: center; gap: 4px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.streak-star {
+  font-size: 26px;
+  transition: all 0.3s;
+  filter: grayscale(1) opacity(0.2);
+}
+.streak-star.earned {
+  filter: none;
+  animation: starEarn 0.5s ease;
+}
+@keyframes starEarn {
+  0% { transform: scale(0) rotate(-180deg); }
+  60% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.streak-count {
+  font-size: 20px; font-weight: 800;
+}
+.streak-count span { color: var(--gold); }
+.prize-hint {
+  font-size: 13px; color: var(--dim); margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Done button */
+.done-btn {
+  display: none;
+  width: 100%;
+  margin-top: 24px;
+  padding: 18px;
+  border: none;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--gold), #ffab76, var(--accent));
+  color: #1a1a2e;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  animation: glow 1.5s ease-in-out infinite alternate;
+  letter-spacing: -0.3px;
+}
+.done-btn.visible { display: block; }
+@keyframes glow {
+  0% { box-shadow: 0 4px 20px rgba(255, 209, 102, 0.3); }
+  100% { box-shadow: 0 4px 40px rgba(255, 107, 157, 0.5); }
+}
+
+/* Already done badge */
+.completed-badge {
+  display: none;
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px;
+  border: 2px solid var(--green);
+  border-radius: 22px;
+  background: rgba(6, 214, 160, 0.08);
+  color: var(--green);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+.completed-badge.visible { display: block; }
+
+/* Celebration overlay */
+.celebration {
+  display: none;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 14, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.celebration.show { display: flex; }
+.celebration .big-emoji {
+  font-size: 88px;
+  animation: float 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 209, 102, 0.3));
+}
+.celebration h2 {
+  font-size: 34px; margin: 20px 0 8px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.celebration p {
+  font-size: 18px; color: var(--dim); margin-bottom: 28px;
+  line-height: 1.5;
+}
+.celebration button {
+  padding: 16px 48px;
+  border: none; border-radius: 18px;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  color: #fff; font-size: 18px; font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(123, 104, 238, 0.3);
+}
+
+/* Prize celebration */
+.prize-celebration .big-emoji { font-size: 100px; }
+.prize-celebration h2 { font-size: 38px; }
+
+/* Confetti */
+.confetti-piece {
+  position: fixed;
+  z-index: 101;
+  animation: confettiFall var(--fall-dur) linear forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Reset */
+.reset-btn {
+  display: block;
+  margin: 24px auto 0;
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  color: var(--dim);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="moon">🌙</div>
+    <h1>Sleepy Time</h1>
+    <div class="subtitle" id="greeting"></div>
+    <div class="date" id="dateDisplay"></div>
+  </div>
+
+  <div class="day-toggle">
+    <button class="day-btn active" id="btnNoBath" onclick="setDayType('no-bath')">
+      <span class="icon">🌟</span> Cozy Night
+    </button>
+    <button class="day-btn" id="btnBath" onclick="setDayType('bath')">
+      <span class="icon">🛁</span> Splashy Night
+    </button>
+  </div>
+
+  <div class="checklist" id="checklist"></div>
+
+  <div class="progress-section">
+    <div class="progress-label" id="progressLabel">0 of 6 done</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <button class="done-btn" id="doneBtn" onclick="completeBedtime()">
+    Hooray! Off to Dreamland!
+  </button>
+
+  <div class="completed-badge" id="completedBadge">
+    Tonight's routine is done!
+  </div>
+
+  <div class="streak-section">
+    <div class="streak-title">Prize Tracker</div>
+    <div class="streak-stars" id="streakStars"></div>
+    <div class="streak-count"><span id="streakNum">0</span> / 10 nights</div>
+    <div class="prize-hint" id="prizeHint">10 nights in a row = a special prize!</div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">Start Over</button>
+</div>
+
+<!-- Nightly celebration -->
+<div class="celebration" id="nightCelebration">
+  <div class="big-emoji">🌟</div>
+  <h2>You Did It!</h2>
+  <p>All done for tonight!<br>Time for sweet dreams.</p>
+  <button onclick="closeCelebration()">Good Night!</button>
+</div>
+
+<!-- Prize celebration -->
+<div class="celebration prize-celebration" id="prizeCelebration">
+  <div class="big-emoji">🏆</div>
+  <h2>PRIZE TIME!</h2>
+  <p>10 nights in a row!<br>You earned something special!</p>
+  <button onclick="closePrize()">Woohoo!</button>
+</div>
+
+<script>
+const TASKS = {
+  'no-bath': [
+    { id: 'pajamas',  icon: '🩷', label: 'Pajama Time' },
+    { id: 'snack',    icon: '🍌', label: 'Yummy Snack' },
+    { id: 'teeth',    icon: '🪥', label: 'Sparkly Teeth' },
+    { id: 'bathroom', icon: '🚽', label: 'Potty Stop' },
+    { id: 'book',     icon: '📖', label: 'Story Time' },
+    { id: 'sleep',    icon: 'sleep', label: 'Lights Out' },
+  ],
+  'bath': [
+    { id: 'bath',     icon: '🛁', label: 'Bubble Bath' },
+    { id: 'pajamas',  icon: '🩷', label: 'Pajama Time' },
+    { id: 'snack',    icon: '🍌', label: 'Yummy Snack' },
+    { id: 'teeth',    icon: '🪥', label: 'Sparkly Teeth' },
+    { id: 'bathroom', icon: '🚽', label: 'Potty Stop' },
+    { id: 'book',     icon: '📖', label: 'Story Time' },
+    { id: 'sleep',    icon: 'sleep', label: 'Lights Out' },
+  ]
+};
+
+const ENCOURAGEMENTS = [
+  'Keep going, superstar!',
+  'You\'re doing amazing!',
+  'Almost there, champ!',
+  'Way to go!',
+  'You\'re a bedtime hero!',
+];
+
+let dayType = 'no-bath';
+let checked = {};
+let streak = 0;
+let lastCompletedDate = null;
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('bedtime') || '{}');
+    streak = d.streak || 0;
+    lastCompletedDate = d.lastCompletedDate || null;
+    const savedDate = d.currentDate || null;
+    if (savedDate === todayStr()) {
+      dayType = d.dayType || 'no-bath';
+      checked = d.checked || {};
+    } else {
+      checked = {};
+      dayType = 'no-bath';
+    }
+  } catch { }
+}
+
+function save() {
+  localStorage.setItem('bedtime', JSON.stringify({
+    streak, lastCompletedDate,
+    dayType, checked,
+    currentDate: todayStr()
+  }));
+}
+
+function setDayType(type) {
+  dayType = type;
+  checked = {};
+  document.getElementById('btnBath').classList.toggle('active', type === 'bath');
+  document.getElementById('btnNoBath').classList.toggle('active', type === 'no-bath');
+  save();
+  render();
+}
+
+function toggleTask(id) {
+  if (lastCompletedDate === todayStr()) return;
+
+  checked[id] = !checked[id];
+  save();
+  render();
+
+  if (checked[id]) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) el.classList.add('checked');
+  }
+}
+
+function render() {
+  const tasks = TASKS[dayType];
+  const cl = document.getElementById('checklist');
+  cl.innerHTML = tasks.map((t, i) => `
+    <div class="task ${checked[t.id] ? 'checked' : ''}" data-id="${t.id}" onclick="toggleTask('${t.id}')">
+      <div class="checkbox">${checked[t.id] ? '✓' : ''}</div>
+      <div class="task-icon">${t.icon === 'sleep' ? '<span class="sleep-icon"><span class="sleeper">🛌</span><span class="zzz">z<span>z</span><span>z</span></span></span>' : t.icon}</div>
+      <div class="task-label">${t.label}</div>
+      <div class="step-num">${i + 1}</div>
+    </div>
+  `).join('');
+
+  const done = tasks.filter(t => checked[t.id]).length;
+  const total = tasks.length;
+  const pct = Math.round((done / total) * 100);
+
+  let label;
+  if (done === 0) label = "Let's get started!";
+  else if (done === total) label = 'All done!';
+  else label = ENCOURAGEMENTS[done % ENCOURAGEMENTS.length];
+
+  document.getElementById('progressLabel').textContent = `${done}/${total} — ${label}`;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+
+  const completedToday = lastCompletedDate === todayStr();
+  const allDone = done === total && !completedToday;
+  document.getElementById('doneBtn').classList.toggle('visible', allDone);
+  document.getElementById('completedBadge').classList.toggle('visible', completedToday);
+
+  renderStreak();
+}
+
+function renderStreak() {
+  const stars = document.getElementById('streakStars');
+  let html = '';
+  for (let i = 0; i < 10; i++) {
+    html += `<div class="streak-star ${i < streak ? 'earned' : ''}">⭐</div>`;
+  }
+  stars.innerHTML = html;
+  document.getElementById('streakNum').textContent = streak;
+
+  const hint = document.getElementById('prizeHint');
+  if (streak >= 10) {
+    hint.textContent = 'You earned your prize!';
+  } else if (streak === 0) {
+    hint.textContent = '10 nights in a row = a special prize!';
+  } else {
+    const left = 10 - streak;
+    hint.textContent = `Only ${left} more night${left === 1 ? '' : 's'} to go!`;
+  }
+}
+
+function completeBedtime() {
+  const today = todayStr();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  if (lastCompletedDate === today) return;
+
+  if (lastCompletedDate === yesterday || lastCompletedDate === null) {
+    streak++;
+  } else {
+    streak = 1;
+  }
+
+  lastCompletedDate = today;
+  save();
+  render();
+
+  if (streak >= 10 && streak % 10 === 0) {
+    showPrize();
+  } else {
+    showCelebration();
+  }
+}
+
+function showCelebration() {
+  document.getElementById('nightCelebration').classList.add('show');
+  launchConfetti();
+}
+
+function closeCelebration() {
+  document.getElementById('nightCelebration').classList.remove('show');
+}
+
+function showPrize() {
+  document.getElementById('prizeCelebration').classList.add('show');
+  launchConfetti();
+  setTimeout(launchConfetti, 600);
+}
+
+function closePrize() {
+  document.getElementById('prizeCelebration').classList.remove('show');
+  streak = 0;
+  save();
+  render();
+}
+
+function launchConfetti() {
+  const colors = ['#ff6b9d', '#ffd166', '#06d6a0', '#118ab2', '#7b68ee', '#ff9a56', '#c56cf0'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.setProperty('--fall-dur', (2 + Math.random() * 2) + 's');
+    const w = 6 + Math.random() * 10;
+    const h = Math.random() > 0.5 ? w : w * 0.4;
+    piece.style.width = w + 'px';
+    piece.style.height = h + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 5000);
+  }
+}
+
+function resetAll() {
+  if (confirm('Start over? Your stars will reset to 0.')) {
+    streak = 0;
+    lastCompletedDate = null;
+    checked = {};
+    save();
+    render();
+  }
+}
+
+// Generate stars
+function generateStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    const size = 1 + Math.random() * 2.5;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    star.style.setProperty('--dur', (1.5 + Math.random() * 3) + 's');
+    star.style.animationDelay = Math.random() * 4 + 's';
+    container.appendChild(star);
+  }
+}
+
+// Greeting & date
+function showGreeting() {
+  const hour = new Date().getHours();
+  let greeting;
+  if (hour < 17) greeting = 'Getting ready early tonight!';
+  else if (hour < 20) greeting = 'Good evening, sleepyhead!';
+  else greeting = 'Time to wind down!';
+  document.getElementById('greeting').textContent = greeting;
+
+  const d = new Date();
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  document.getElementById('dateDisplay').textContent = d.toLocaleDateString('en-US', opts);
+}
+
+// Init
+load();
+generateStars();
+showGreeting();
+render();
+</script>
+</body>
+</html>
