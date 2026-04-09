@@ -505,16 +505,19 @@ const ENCOURAGEMENTS = [
   'You\'re a bedtime hero!',
 ];
 
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzzy37NEj_6P4GwAfLUhNdCAs0JMQR9YoOb2ThU7c2AWxCJ0is7eO6fBIMwdM3W6kMw1A/exec';
+
 let dayType = 'no-bath';
 let checked = {};
 let streak = 0;
 let lastCompletedDate = null;
+let syncing = false;
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function load() {
+function loadLocal() {
   try {
     const d = JSON.parse(localStorage.getItem('bedtime') || '{}');
     streak = d.streak || 0;
@@ -530,12 +533,62 @@ function load() {
   } catch { }
 }
 
-function save() {
+function applyData(d) {
+  streak = Number(d.streak) || 0;
+  lastCompletedDate = d.lastCompletedDate || null;
+  const savedDate = d.currentDate || null;
+  if (savedDate === todayStr()) {
+    dayType = d.dayType || 'no-bath';
+    try { checked = typeof d.checked === 'string' ? JSON.parse(d.checked) : (d.checked || {}); } catch { checked = {}; }
+  } else {
+    checked = {};
+    dayType = 'no-bath';
+  }
+}
+
+async function load() {
+  loadLocal();
+  render();
+  try {
+    const res = await fetch(SHEET_URL + '?action=get');
+    const d = await res.json();
+    if (d && !d.error) {
+      applyData(d);
+      saveLocal();
+      document.getElementById('btnBath').classList.toggle('active', dayType === 'bath');
+      document.getElementById('btnNoBath').classList.toggle('active', dayType === 'no-bath');
+      render();
+    }
+  } catch { }
+}
+
+function saveLocal() {
   localStorage.setItem('bedtime', JSON.stringify({
     streak, lastCompletedDate,
     dayType, checked,
     currentDate: todayStr()
   }));
+}
+
+function save() {
+  saveLocal();
+  syncToSheet();
+}
+
+function syncToSheet() {
+  if (syncing) return;
+  syncing = true;
+  const params = new URLSearchParams({
+    action: 'save',
+    streak: streak,
+    lastCompletedDate: lastCompletedDate || '',
+    checked: JSON.stringify(checked),
+    dayType: dayType,
+    currentDate: todayStr()
+  });
+  fetch(SHEET_URL + '?' + params.toString())
+    .catch(() => {})
+    .finally(() => { syncing = false; });
 }
 
 function setDayType(type) {
@@ -718,10 +771,11 @@ function showGreeting() {
 }
 
 // Init
-load();
+loadLocal();
 generateStars();
 showGreeting();
 render();
+load();
 </script>
 </body>
 </html>
