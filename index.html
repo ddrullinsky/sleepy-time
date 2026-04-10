@@ -176,6 +176,25 @@ body {
   opacity: 0.7;
 }
 
+/* Pajama icon */
+.pj-icon {
+  display: inline-flex;
+  align-items: flex-end;
+  position: relative;
+  line-height: 1;
+}
+.pj-icon .pj-shirt { font-size: 36px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+.pj-icon .pj-moon {
+  position: absolute;
+  top: -2px; right: -10px;
+  font-size: 18px;
+  animation: moonRock 3s ease-in-out infinite;
+}
+@keyframes moonRock {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
 /* Sleep icon */
 .sleep-icon {
   display: inline-flex;
@@ -479,20 +498,22 @@ body {
 <script>
 const TASKS = {
   'no-bath': [
-    { id: 'pajamas',  icon: '🩷', label: 'Pajama Time' },
+    { id: 'pajamas',  icon: 'pj', label: 'Pajama Time' },
     { id: 'snack',    icon: '🍌', label: 'Yummy Snack' },
     { id: 'teeth',    icon: '🪥', label: 'Sparkly Teeth' },
     { id: 'bathroom', icon: '🚽', label: 'Potty Stop' },
     { id: 'book',     icon: '📖', label: 'Story Time' },
+    { id: 'kiss',     icon: '😘', label: 'Kiss Mommy & Daddy' },
     { id: 'sleep',    icon: 'sleep', label: 'Lights Out' },
   ],
   'bath': [
     { id: 'bath',     icon: '🛁', label: 'Bubble Bath' },
-    { id: 'pajamas',  icon: '🩷', label: 'Pajama Time' },
+    { id: 'pajamas',  icon: 'pj', label: 'Pajama Time' },
     { id: 'snack',    icon: '🍌', label: 'Yummy Snack' },
     { id: 'teeth',    icon: '🪥', label: 'Sparkly Teeth' },
     { id: 'bathroom', icon: '🚽', label: 'Potty Stop' },
     { id: 'book',     icon: '📖', label: 'Story Time' },
+    { id: 'kiss',     icon: '😘', label: 'Kiss Mommy & Daddy' },
     { id: 'sleep',    icon: 'sleep', label: 'Lights Out' },
   ]
 };
@@ -625,7 +646,11 @@ function render() {
   cl.innerHTML = tasks.map((t, i) => `
     <div class="task ${checked[t.id] ? 'checked' : ''}" data-id="${t.id}" onclick="toggleTask('${t.id}')">
       <div class="checkbox">${checked[t.id] ? '✓' : ''}</div>
-      <div class="task-icon">${t.icon === 'sleep' ? '<span class="sleep-icon"><span class="sleeper">🛌</span><span class="zzz">z<span>z</span><span>z</span></span></span>' : t.icon}</div>
+      <div class="task-icon">${
+        t.icon === 'sleep' ? '<span class="sleep-icon"><span class="sleeper">🛌</span><span class="zzz">z<span>z</span><span>z</span></span></span>' :
+        t.icon === 'pj'    ? '<span class="pj-icon"><span class="pj-shirt">👕</span><span class="pj-moon">🌙</span></span>' :
+        t.icon
+      }</div>
       <div class="task-label">${t.label}</div>
       <div class="step-num">${i + 1}</div>
     </div>
