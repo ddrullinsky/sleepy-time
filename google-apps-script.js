@@ -1,5 +1,6 @@
 // =============================================
 // PASTE THIS INTO: Extensions > Apps Script
+// Then: Deploy > Manage deployments > edit > new version > Deploy
 // =============================================
 
 function doGet(e) {
@@ -13,13 +14,6 @@ function doPost(e) {
 function handleRequest(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var action = e.parameter.action;
-
-  var headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
-
   var result;
 
   if (action === 'get') {
@@ -30,27 +24,32 @@ function handleRequest(e) {
     result = { error: 'Unknown action' };
   }
 
-  var output = ContentService.createTextOutput(JSON.stringify(result))
+  return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
-  return output;
 }
 
 function getData(sheet) {
   var row = sheet.getRange(2, 1, 1, 5).getValues()[0];
   return {
-    streak: Number(row[0]) || 0,
-    lastCompletedDate: row[1] || '',
-    checked: row[2] || '{}',
-    dayType: row[3] || 'no-bath',
-    currentDate: row[4] || ''
+    streak:            Number(row[0]) || 0,
+    lastCompletedDate: String(row[1] || ''),
+    checked:           String(row[2] || '{}'),
+    dayType:           String(row[3] || 'no-bath'),
+    currentDate:       String(row[4] || '')
   };
 }
 
 function saveData(sheet, params) {
+  // Format date columns as plain text FIRST to prevent Google Sheets
+  // from auto-converting date strings into date objects
+  sheet.getRange(2, 2).setNumberFormat('@STRING@');
+  sheet.getRange(2, 5).setNumberFormat('@STRING@');
+
   sheet.getRange(2, 1).setValue(Number(params.streak) || 0);
-  sheet.getRange(2, 2).setValue(params.lastCompletedDate || '');
-  sheet.getRange(2, 3).setValue(params.checked || '{}');
-  sheet.getRange(2, 4).setValue(params.dayType || 'no-bath');
-  sheet.getRange(2, 5).setValue(params.currentDate || '');
+  sheet.getRange(2, 2).setValue(String(params.lastCompletedDate || ''));
+  sheet.getRange(2, 3).setValue(String(params.checked || '{}'));
+  sheet.getRange(2, 4).setValue(String(params.dayType || 'no-bath'));
+  sheet.getRange(2, 5).setValue(String(params.currentDate || ''));
+
   return { success: true };
 }

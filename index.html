@@ -535,7 +535,11 @@ let lastCompletedDate = null;
 let syncing = false;
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  // Use local date (not UTC) to match what user sees on their phone
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
 }
 
 function loadLocal() {
@@ -556,8 +560,18 @@ function loadLocal() {
 
 function normalizeDate(val) {
   if (!val) return null;
-  // Google Sheets may return a full ISO timestamp — strip to date only
-  return String(val).slice(0, 10);
+  const str = String(val).trim();
+  if (!str) return null;
+  // Google Sheets returns full UTC timestamps — convert back to LOCAL date
+  if (str.includes('T') || str.length > 10) {
+    const d = new Date(str);
+    if (!isNaN(d)) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+  }
+  return str.slice(0, 10);
 }
 
 function applyData(d) {
