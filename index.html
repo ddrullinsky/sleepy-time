@@ -476,6 +476,8 @@ body {
     <div class="prize-hint" id="prizeHint">10 nights in a row = a special prize!</div>
   </div>
 
+  <div id="syncStatus" style="text-align:center; font-size:11px; color:var(--dim); margin-top:16px; opacity:0.7;">☁️ Syncing…</div>
+
   <button class="reset-btn" onclick="resetAll()">Start Over</button>
 </div>
 
@@ -533,6 +535,8 @@ let checked = {};
 let streak = 0;
 let lastCompletedDate = null;
 let syncing = false;
+let ready = false;  // true only after initial sheet load succeeds
+let pendingSave = false;
 
 function todayStr() {
   // Use local date (not UTC) to match what user sees on their phone
@@ -587,11 +591,13 @@ function applyData(d) {
   }
 }
 
-async function load() {
+async function load(attempt) {
+  attempt = attempt || 1;
   loadLocal();
   render();
+  updateSyncStatus('syncing');
   try {
-    const res = await fetch(SHEET_URL + '?action=get');
+    const res = await fetch(SHEET_URL + '?action=get', { cache: 'no-store' });
     const d = await res.json();
     if (d && !d.error) {
       applyData(d);
@@ -599,8 +605,30 @@ async function load() {
       document.getElementById('btnBath').classList.toggle('active', dayType === 'bath');
       document.getElementById('btnNoBath').classList.toggle('active', dayType === 'no-bath');
       render();
+      ready = true;
+      updateSyncStatus('ok');
+      // Flush any pending local saves that happened before load completed
+      if (pendingSave) { pendingSave = false; syncToSheet(); }
+      return;
     }
-  } catch { }
+    throw new Error('bad response');
+  } catch (e) {
+    if (attempt < 5) {
+      setTimeout(() => load(attempt + 1), 1500);
+      return;
+    }
+    // Give up after retries — allow offline use, saves will sync next session
+    ready = true;
+    updateSyncStatus('offline');
+  }
+}
+
+function updateSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (state === 'syncing') { el.textContent = '☁️ Syncing…'; el.style.color = 'var(--dim)'; }
+  else if (state === 'ok') { el.textContent = '✓ Synced'; el.style.color = 'var(--green)'; }
+  else if (state === 'offline') { el.textContent = '⚠️ Offline'; el.style.color = 'var(--accent)'; }
 }
 
 function saveLocal() {
@@ -613,12 +641,19 @@ function saveLocal() {
 
 function save() {
   saveLocal();
+  if (!ready) {
+    // Don't write to sheet until initial load succeeds — prevents overwriting
+    // the real streak with stale local state
+    pendingSave = true;
+    return;
+  }
   syncToSheet();
 }
 
 function syncToSheet() {
-  if (syncing) return;
+  if (syncing) { pendingSave = true; return; }
   syncing = true;
+  updateSyncStatus('syncing');
   const params = new URLSearchParams({
     action: 'save',
     streak: streak,
@@ -628,8 +663,12 @@ function syncToSheet() {
     currentDate: todayStr()
   });
   fetch(SHEET_URL + '?' + params.toString())
-    .catch(() => {})
-    .finally(() => { syncing = false; });
+    .then(() => updateSyncStatus('ok'))
+    .catch(() => updateSyncStatus('offline'))
+    .finally(() => {
+      syncing = false;
+      if (pendingSave) { pendingSave = false; syncToSheet(); }
+    });
 }
 
 function setDayType(type) {
