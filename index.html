@@ -339,6 +339,15 @@ body {
   letter-spacing: -0.3px;
 }
 .done-btn.visible { display: block; }
+.done-btn:disabled,
+.done-btn.disabled {
+  background: linear-gradient(135deg, #444, #555);
+  color: #999;
+  cursor: not-allowed;
+  animation: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
 @keyframes glow {
   0% { box-shadow: 0 4px 20px rgba(255, 209, 102, 0.3); }
   100% { box-shadow: 0 4px 40px rgba(255, 107, 157, 0.5); }
@@ -723,7 +732,10 @@ function render() {
 
   const completedToday = lastCompletedDate === todayStr();
   const allDone = done === total && !completedToday;
-  document.getElementById('doneBtn').classList.toggle('visible', allDone);
+  const doneBtn = document.getElementById('doneBtn');
+  doneBtn.classList.toggle('visible', allDone);
+  doneBtn.disabled = !ready;
+  doneBtn.textContent = ready ? 'Hooray! Off to Dreamland!' : '☁️ Waiting for sync…';
   document.getElementById('completedBadge').classList.toggle('visible', completedToday);
 
   renderStreak();
@@ -758,6 +770,7 @@ function yesterdayStr() {
 }
 
 function completeBedtime() {
+  if (!ready) return;  // Don't allow completion until sheet has synced
   const today = todayStr();
   const yesterday = yesterdayStr();
 
