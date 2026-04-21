@@ -676,7 +676,10 @@ function normalizeDate(val) {
 function applyData(d) {
   streak = Number(d.streak) || 0;
   lastCompletedDate = normalizeDate(d.lastCompletedDate);
-  prizeWonDate = d.prizeWonDate || null;
+  // prizeWonDate is encoded inside the checked JSON as __prize key
+  let rawChecked = {};
+  try { rawChecked = typeof d.checked === 'string' ? JSON.parse(d.checked) : (d.checked || {}); } catch { }
+  prizeWonDate = rawChecked.__prize || null;
   // If prize was won on a previous day, reset streak now
   if (prizeWonDate && prizeWonDate !== todayStr()) {
     streak = 0;
@@ -685,7 +688,7 @@ function applyData(d) {
   const savedDate = normalizeDate(d.currentDate);
   if (savedDate === todayStr()) {
     dayType = d.dayType || 'no-bath';
-    try { checked = typeof d.checked === 'string' ? JSON.parse(d.checked) : (d.checked || {}); } catch { checked = {}; }
+    checked = rawChecked;
   } else {
     checked = {};
     dayType = 'no-bath';
@@ -755,14 +758,19 @@ function syncToSheet() {
   if (syncing) { pendingSave = true; return; }
   syncing = true;
   updateSyncStatus('syncing');
+  // Embed prizeWonDate inside checked JSON so no extra sheet column is needed
+  const checkedWithPrize = prizeWonDate
+    ? { ...checked, __prize: prizeWonDate }
+    : { ...checked };
+  delete checkedWithPrize.__prize; // clean if no prize
+  if (prizeWonDate) checkedWithPrize.__prize = prizeWonDate;
   const params = new URLSearchParams({
     action: 'save',
     streak: streak,
     lastCompletedDate: lastCompletedDate || '',
-    checked: JSON.stringify(checked),
+    checked: JSON.stringify(checkedWithPrize),
     dayType: dayType,
-    currentDate: todayStr(),
-    prizeWonDate: prizeWonDate || ''
+    currentDate: todayStr()
   });
   fetch(SHEET_URL + '?' + params.toString())
     .then(() => updateSyncStatus('ok'))
