@@ -625,6 +625,7 @@ let lastCompletedDate = null;
 let syncing = false;
 let ready = false;  // true only after initial sheet load succeeds
 let pendingSave = false;
+let prizeWonDate = null;  // date prize was won — keeps trophy visible until next day
 
 function todayStr() {
   // Use local date (not UTC) to match what user sees on their phone
@@ -639,6 +640,12 @@ function loadLocal() {
     const d = JSON.parse(localStorage.getItem('bedtime') || '{}');
     streak = d.streak || 0;
     lastCompletedDate = d.lastCompletedDate || null;
+    prizeWonDate = d.prizeWonDate || null;
+    // If prize was won on a previous day, reset streak now
+    if (prizeWonDate && prizeWonDate !== todayStr()) {
+      streak = 0;
+      prizeWonDate = null;
+    }
     const savedDate = d.currentDate || null;
     if (savedDate === todayStr()) {
       dayType = d.dayType || 'no-bath';
@@ -669,6 +676,12 @@ function normalizeDate(val) {
 function applyData(d) {
   streak = Number(d.streak) || 0;
   lastCompletedDate = normalizeDate(d.lastCompletedDate);
+  prizeWonDate = d.prizeWonDate || null;
+  // If prize was won on a previous day, reset streak now
+  if (prizeWonDate && prizeWonDate !== todayStr()) {
+    streak = 0;
+    prizeWonDate = null;
+  }
   const savedDate = normalizeDate(d.currentDate);
   if (savedDate === todayStr()) {
     dayType = d.dayType || 'no-bath';
@@ -722,7 +735,7 @@ function updateSyncStatus(state) {
 function saveLocal() {
   localStorage.setItem('bedtime', JSON.stringify({
     streak, lastCompletedDate,
-    dayType, checked,
+    dayType, checked, prizeWonDate,
     currentDate: todayStr()
   }));
 }
@@ -748,7 +761,8 @@ function syncToSheet() {
     lastCompletedDate: lastCompletedDate || '',
     checked: JSON.stringify(checked),
     dayType: dayType,
-    currentDate: todayStr()
+    currentDate: todayStr(),
+    prizeWonDate: prizeWonDate || ''
   });
   fetch(SHEET_URL + '?' + params.toString())
     .then(() => updateSyncStatus('ok'))
@@ -822,21 +836,39 @@ function render() {
 
 function renderStreak() {
   const stars = document.getElementById('streakStars');
-  let html = '';
-  for (let i = 0; i < 10; i++) {
-    html += `<div class="streak-star ${i < streak ? 'earned' : ''}">⭐</div>`;
-  }
-  stars.innerHTML = html;
-  document.getElementById('streakNum').textContent = streak;
-
+  const countEl = document.getElementById('streakNum');
   const hint = document.getElementById('prizeHint');
-  if (streak >= 10) {
-    hint.textContent = 'You earned your prize!';
-  } else if (streak === 0) {
-    hint.textContent = '10 nights in a row = a special prize!';
+  const titleEl = document.querySelector('.streak-title');
+
+  const wonTonight = prizeWonDate === todayStr();
+
+  if (wonTonight) {
+    // Trophy mode — show all 10 stars glowing + trophy, reset tomorrow
+    let html = '';
+    for (let i = 0; i < 10; i++) {
+      html += `<div class="streak-star earned" style="animation-delay:${i * 0.08}s">⭐</div>`;
+    }
+    stars.innerHTML = html;
+    countEl.textContent = '10';
+    titleEl.textContent = '🏆 Prize Unlocked!';
+    hint.innerHTML = 'You did it! Resets tomorrow for a new adventure 🚀';
+    hint.style.color = 'var(--gold)';
   } else {
-    const left = 10 - streak;
-    hint.textContent = `Only ${left} more night${left === 1 ? '' : 's'} to go!`;
+    let html = '';
+    for (let i = 0; i < 10; i++) {
+      html += `<div class="streak-star ${i < streak ? 'earned' : ''}">⭐</div>`;
+    }
+    stars.innerHTML = html;
+    countEl.textContent = streak;
+    titleEl.textContent = 'Prize Tracker';
+    hint.style.color = '';
+
+    if (streak === 0) {
+      hint.textContent = '10 nights in a row = a special prize!';
+    } else {
+      const left = 10 - streak;
+      hint.textContent = `Only ${left} more night${left === 1 ? '' : 's'} to go!`;
+    }
   }
 }
 
@@ -862,10 +894,15 @@ function completeBedtime() {
   }
 
   lastCompletedDate = today;
+
+  if (streak >= 10 && streak % 10 === 0) {
+    prizeWonDate = today;  // Mark prize as won today — will reset tomorrow
+  }
+
   save();
   render();
 
-  if (streak >= 10 && streak % 10 === 0) {
+  if (prizeWonDate === today) {
     showPrize();
   } else {
     showCelebration();
@@ -888,10 +925,8 @@ function showPrize() {
 }
 
 function closePrize() {
+  // Don't reset yet — keep trophy + 10 stars until tomorrow
   document.getElementById('prizeCelebration').classList.remove('show');
-  streak = 0;
-  save();
-  render();
 }
 
 function launchConfetti() {
