@@ -517,6 +517,47 @@ body::before {
   cursor: pointer;
   opacity: 0.5;
 }
+
+/* ===== Monster Truck theme (TEMPORARY) — flip THEME to 'night' in JS to fully revert ===== */
+/* All rules are scoped to body.theme-monster, so the default sky theme is untouched. */
+body.theme-monster {
+  --bg-1: #160a04;
+  --bg-2: #3a1607;
+  --bg-3: #240f05;
+  --accent: #ff6b1a;
+  --gold: #ffc233;
+  --blue: #ff9a3d;
+  --purple: #ff3d00;
+  --pink: #ff8c1a;
+  --text: #fff3e0;
+  --dim: #e0a878;
+}
+body.theme-monster::before {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 107, 26, 0.30), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 40%, rgba(255, 61, 0, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 55%, rgba(255, 194, 51, 0.16), transparent 60%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+}
+body.theme-monster .stars { display: none; }
+body.theme-monster .header h1 {
+  background: linear-gradient(135deg, var(--gold), #ff7a1a, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+body.theme-monster .moon {
+  filter: drop-shadow(0 0 18px rgba(255, 107, 26, 0.45));
+}
+body.theme-monster .progress-fill {
+  background: linear-gradient(90deg, var(--gold), #ff7a1a, var(--accent), var(--purple));
+  background-size: 200% 100%;
+}
+body.theme-monster .streak-star.earned {
+  filter: drop-shadow(0 0 8px rgba(255, 140, 26, 0.6));
+}
+body.theme-monster .celebration {
+  background: rgba(26, 10, 4, 0.93);
+}
 </style>
 </head>
 <body>
@@ -617,6 +658,37 @@ const ENCOURAGEMENTS = [
 ];
 
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzzy37NEj_6P4GwAfLUhNdCAs0JMQR9YoOb2ThU7c2AWxCJ0is7eO6fBIMwdM3W6kMw1A/exec';
+
+// ── THEME SWITCH ──────────────────────────────────────────────
+// Set to 'night' (one word) to instantly revert to the original sky theme.
+// Purely cosmetic — does not touch streak, checked tasks, or sync.
+const THEME = 'monster';
+
+const THEMES = {
+  night: {
+    moon: '🌙',
+    star: '⭐',
+    prizeHintBase: '10 nights in a row = a special prize!',
+    unlockedTitle: '🏆 Prize Unlocked!',
+    prizeEmoji: '🏆',
+    prizeTitle: 'PRIZE TIME!',
+    prizePara: '10 nights in a row!<br>You earned something special!',
+    nightCelebEmoji: '🌟',
+    goalShort: 'to go!',
+  },
+  monster: {
+    moon: '🛻',
+    star: '🛞',
+    prizeHintBase: '10 nights = MONSTER TRUCK TICKETS! 🎟️',
+    unlockedTitle: '🛻 Tickets Unlocked!',
+    prizeEmoji: '🛻',
+    prizeTitle: 'MONSTER TRUCK TICKETS!',
+    prizePara: '10 nights done!<br>You earned tickets to the<br>MONSTER TRUCKS! 🎟️🔥',
+    nightCelebEmoji: '🔥',
+    goalShort: 'to MONSTER TRUCK TICKETS! 🎟️',
+  },
+};
+const T = THEMES[THEME] || THEMES.night;
 
 let dayType = 'no-bath';
 let checked = {};
@@ -854,17 +926,17 @@ function renderStreak() {
     // Trophy mode — show all 10 stars glowing + trophy, reset tomorrow
     let html = '';
     for (let i = 0; i < 10; i++) {
-      html += `<div class="streak-star earned" style="animation-delay:${i * 0.08}s">⭐</div>`;
+      html += `<div class="streak-star earned" style="animation-delay:${i * 0.08}s">${T.star}</div>`;
     }
     stars.innerHTML = html;
     countEl.textContent = '10';
-    titleEl.textContent = '🏆 Prize Unlocked!';
+    titleEl.textContent = T.unlockedTitle;
     hint.innerHTML = 'You did it! Resets tomorrow for a new adventure 🚀';
     hint.style.color = 'var(--gold)';
   } else {
     let html = '';
     for (let i = 0; i < 10; i++) {
-      html += `<div class="streak-star ${i < streak ? 'earned' : ''}">⭐</div>`;
+      html += `<div class="streak-star ${i < streak ? 'earned' : ''}">${T.star}</div>`;
     }
     stars.innerHTML = html;
     countEl.textContent = streak;
@@ -872,10 +944,10 @@ function renderStreak() {
     hint.style.color = '';
 
     if (streak === 0) {
-      hint.textContent = '10 nights in a row = a special prize!';
+      hint.textContent = T.prizeHintBase;
     } else {
       const left = 10 - streak;
-      hint.textContent = `Only ${left} more night${left === 1 ? '' : 's'} to go!`;
+      hint.textContent = `Only ${left} more night${left === 1 ? '' : 's'} ${T.goalShort}`;
     }
   }
 }
@@ -997,10 +1069,25 @@ function showGreeting() {
   document.getElementById('dateDisplay').textContent = d.toLocaleDateString('en-US', opts);
 }
 
+function applyTheme() {
+  document.body.classList.toggle('theme-monster', THEME === 'monster');
+  const moonEl = document.querySelector('.moon');
+  if (moonEl) moonEl.textContent = T.moon;
+  const pc = document.getElementById('prizeCelebration');
+  if (pc) {
+    pc.querySelector('.big-emoji').textContent = T.prizeEmoji;
+    pc.querySelector('h2').textContent = T.prizeTitle;
+    pc.querySelector('p').innerHTML = T.prizePara;
+  }
+  const nc = document.getElementById('nightCelebration');
+  if (nc) nc.querySelector('.big-emoji').textContent = T.nightCelebEmoji;
+}
+
 // Init
 loadLocal();
 generateStars();
 showGreeting();
+applyTheme();
 render();
 load();
 </script>
