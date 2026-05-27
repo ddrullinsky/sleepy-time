@@ -662,7 +662,7 @@ const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzzy37NEj_6P4GwAfLUhN
 // ── THEME SWITCH ──────────────────────────────────────────────
 // Set to 'night' (one word) to instantly revert to the original sky theme.
 // Purely cosmetic — does not touch streak, checked tasks, or sync.
-const THEME = 'monster';
+const THEME = 'night';
 
 const THEMES = {
   night: {
@@ -733,14 +733,16 @@ function normalizeDate(val) {
   if (!val) return null;
   const str = String(val).trim();
   if (!str) return null;
-  // Google Sheets returns full UTC timestamps — convert back to LOCAL date
-  if (str.includes('T') || str.length > 10) {
-    const d = new Date(str);
-    if (!isNaN(d)) {
-      return d.getFullYear() + '-' +
-        String(d.getMonth() + 1).padStart(2, '0') + '-' +
-        String(d.getDate()).padStart(2, '0');
-    }
+  // If the string starts with YYYY-MM-DD, trust the date portion as-is.
+  // Why: Sheets returns dates as UTC midnight ISO timestamps. Parsing those
+  // with new Date() and reading local components shifts the date back a day
+  // in any negative-UTC-offset timezone, which broke streak comparisons.
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+  const d = new Date(str);
+  if (!isNaN(d)) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
   }
   return str.slice(0, 10);
 }
