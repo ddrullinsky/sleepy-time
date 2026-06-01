@@ -969,11 +969,9 @@ function completeBedtime() {
 
   if (lastCompletedDate === today) return;
 
-  if (lastCompletedDate === yesterday || lastCompletedDate === null) {
-    streak++;
-  } else {
-    streak = 1;
-  }
+  // Keep every star already earned, even if a night was skipped —
+  // completing the routine always adds one more star (never resets).
+  streak++;
 
   lastCompletedDate = today;
 
